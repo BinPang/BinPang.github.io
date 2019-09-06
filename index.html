@@ -285,6 +285,214 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://binpang.github.io/2019/09/02/how-to-read-redis-source-code/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                
+                <a href="/2019/09/02/how-to-read-redis-source-code/" class="post-title-link" itemprop="url">如何阅读redis数据结构</a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-09-02 12:30:25" itemprop="dateCreated datePublished" datetime="2019-09-02T12:30:25+08:00">2019-09-02</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-09-06 19:11:11" itemprop="dateModified" datetime="2019-09-06T19:11:11+08:00">2019-09-06</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><ul>
+<li>熟练基本redis操作</li>
+<li>了解编程语言(c+java最优)</li>
+</ul>
+<h2 id="初窥"><a href="#初窥" class="headerlink" title="初窥"></a>初窥</h2><p>clone代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~$ cd</span><br><span class="line">pangbin@pangbin-VirtualBox:~$ git clone https://github.com/antirez/redis.git</span><br></pre></td></tr></table></figure>
+
+<p>当拿到源代码时，我们首先需要看的是<strong>源码目录</strong>，优秀的开源软件命名一定非常规范，非常清晰明了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~/redis$ ls -F</span><br><span class="line">00-RELEASENOTES  CONTRIBUTING  INSTALL    Makefile   deps/       runtest*          runtest-moduleapi*  sentinel.conf  tests/</span><br><span class="line">BUGS             COPYING       MANIFESTO  README.md  redis.conf  runtest-cluster*  runtest-sentinel*   src/           utils/</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="green">runtest*</font> 我们能猜到是跑测试用例的(带执行权限)</li>
+<li><font color="blue">deps/</font> 依赖库</li>
+<li><font color="blue">tests/</font> 测试用例</li>
+<li><font color="blue">src/</font> <strong>源码目录</strong>，这也是一般项目都会放在这下面的</li>
+<li><font color="blue">utils/</font> 小工具</li>
+<li>*.conf 配置文件</li>
+<li>Makefile 自动编译工具</li>
+<li>…其他文件，我们通过文件名可以判断出来</li>
+</ul>
+<h2 id="源码文件与编译"><a href="#源码文件与编译" class="headerlink" title="源码文件与编译"></a>源码文件与编译</h2><h3 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~/redis$ ls -F src/</span><br><span class="line">Makefile     bio.c              debugmacro.h      gopher.c           lzfP.h            quicklist.h        release.c       slowlog.c       tracking.c</span><br><span class="line">acl.c        bio.h              defrag.c          help.h             lzf_c.c           rand.c             replication.c   slowlog.h       util.c</span><br><span class="line">adlist.c     bitops.c           dict.c            hyperloglog.c      lzf_d.c           rand.h             rio.c           solarisfixes.h  util.h</span><br><span class="line">adlist.h     blocked.c          dict.h            intset.c           memtest.c         rax.c              rio.h           sort.c          valgrind.sup</span><br><span class="line">ae.c         childinfo.c        endianconv.c      intset.h           mkreleasehdr.sh*  rax.h              scripting.c     sparkline.c     version.h</span><br><span class="line">ae.h         cluster.c          endianconv.h      latency.c          module.c          rax_malloc.h       sds.c           sparkline.h     ziplist.c</span><br><span class="line">ae_epoll.c   cluster.h          evict.c           latency.h          modules/          rdb.c              sds.h           stream.h        ziplist.h</span><br><span class="line">ae_evport.c  config.c           expire.c          lazyfree.c         multi.c           rdb.h              sdsalloc.h      syncio.c        zipmap.c</span><br><span class="line">ae_kqueue.c  config.h           fmacros.h         listpack.c         networking.c      redis-benchmark.c  sentinel.c      t_hash.c        zipmap.h</span><br><span class="line">ae_select.c  crc16.c            geo.c             listpack.h         notify.c          redis-check-aof.c  server.c        t_list.c        zmalloc.c</span><br><span class="line">anet.c       crc16_slottable.h  geo.h             listpack_malloc.h  object.c          redis-check-rdb.c  server.h        t_set.c         zmalloc.h</span><br><span class="line">anet.h       crc64.c            geohash.c         localtime.c        pqsort.c          redis-cli.c        setproctitle.c  t_stream.c</span><br><span class="line">aof.c        crc64.h            geohash.h         lolwut.c           pqsort.h          redis-trib.rb*     sha1.c          t_string.c</span><br><span class="line">asciilogo.h  db.c               geohash_helper.c  lolwut5.c          pubsub.c          redisassert.h      sha1.h          t_zset.c</span><br><span class="line">atomicvar.h  debug.c            geohash_helper.h  lzf.h              quicklist.c       redismodule.h      siphash.c       testhelp.h</span><br></pre></td></tr></table></figure>
+
+<p>我们通过grep命令来查看这些命令的源代码在何处，当然我们不能去grep get等操作，因为这些命令与单词太像了,我们搜索像getset、sismember等特殊非单词命令</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~/redis$ grep -ri getset ./src/</span><br><span class="line">./src/server.c:    &#123;&quot;getset&quot;,getsetCommand,3,</span><br><span class="line">./src/config.c:            if ((unsigned int) aeGetSetSize(server.el) &lt;</span><br><span class="line">./src/ae.h:int aeGetSetSize(aeEventLoop *eventLoop);</span><br><span class="line">./src/ae.c:int aeGetSetSize(aeEventLoop *eventLoop) &#123;</span><br><span class="line">./src/t_string.c:void getsetCommand(client *c) &#123;</span><br><span class="line">./src/help.h:    &#123; &quot;GETSET&quot;,</span><br><span class="line">./src/server.h:void getsetCommand(client *c);</span><br></pre></td></tr></table></figure>
+
+<p>通过grep，我们能大致猜测当执行getset命令时执行的是<strong>getsetCommand</strong>函数</p>
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~/redis$ make</span><br><span class="line">pangbin@pangbin-VirtualBox:~/redis$ gdb src/redis-server</span><br><span class="line"></span><br><span class="line">GDB中：</span><br><span class="line">(gdb) b getsetCommand</span><br><span class="line">Breakpoint 1 at 0x64a00: file t_string.c, line 176.</span><br><span class="line">(gdb) run</span><br></pre></td></tr></table></figure>
+
+<p>然后在另外一个窗口执行以下命令后再跳转回原窗口</p>
+<hr>
+<p>pangbin@pangbin-VirtualBox:~$ redis-cli</p>
+<p>127.0.0.1:6379&gt; getset test 123</p>
+<hr>
+<h3 id="调用栈"><a href="#调用栈" class="headerlink" title="调用栈"></a>调用栈</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(gdb) bt</span><br><span class="line">#0  getsetCommand (c=0x7ffff6d17100) at t_string.c:176</span><br><span class="line">#1  0x00005555555911c8 in call (c=0x7ffff6d17100, flags=15) at server.c:3181</span><br><span class="line">#2  0x0000555555591b3c in processCommand (c=c@entry=0x7ffff6d17100) at server.c:3513</span><br><span class="line">#3  0x000055555559eb30 in processCommandAndResetClient (c=c@entry=0x7ffff6d17100) at networking.c:1577</span><br><span class="line">#4  0x00005555555a2d9f in processInputBuffer (c=0x7ffff6d17100) at networking.c:1672</span><br><span class="line">#5  0x000055555558a830 in aeProcessEvents (eventLoop=eventLoop@entry=0x7ffff6c23190, flags=flags@entry=11) at ae.c:443</span><br><span class="line">#6  0x000055555558ac1b in aeMain (eventLoop=0x7ffff6c23190) at ae.c:501</span><br><span class="line">#7  0x00005555555877c9 in main (argc=&lt;optimized out&gt;, argv=0x7fffffffe3b8) at server.c:4933</span><br></pre></td></tr></table></figure>
+
+<p>当然从上面bt中我们可以看到一条命令执行的全过程</p>
+<hr>
+<p><strong>main</strong> -&gt;</p>
+<p><strong>aeMain</strong> -&gt;</p>
+<p><strong>aeProcessEvents</strong> -&gt;</p>
+<p><strong>processInputBuffer</strong> -&gt;</p>
+<p><strong>processCommandAndResetClient</strong> -&gt;</p>
+<p><strong>processCommand</strong> -&gt;</p>
+<p><strong>call</strong> -&gt;</p>
+<p><strong>getsetCommand</strong></p>
+<hr>
+<p>当然<strong>getset</strong>命令就是在<strong>getsetCommand</strong>函数中实现的，我们可以去查看这个函数是怎么执行的，由于这个命令比较简单，那么我们</p>
+<ul>
+<li>注意到#7中有<em>argc=&lt;optimized out&gt;<em>，我们在执行编译时指定</em>make noopt</em></li>
+</ul>
+<h2 id="redis"><a href="#redis" class="headerlink" title="redis"></a>redis</h2><p>我们在查找getset时，在getset命令上下，可以发现在server.c中，保存在所有命令对应的函数</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">struct redisCommand redisCommandTable[] = &#123;</span><br><span class="line">    &#123;&quot;module&quot;,moduleCommand,-2,&quot;as&quot;,0,NULL,0,0,0,0,0&#125;,</span><br><span class="line">    &#123;&quot;get&quot;,getCommand,2,&quot;rF&quot;,0,NULL,1,1,1,0,0&#125;,</span><br><span class="line">    &#123;&quot;set&quot;,setCommand,-3,&quot;wm&quot;,0,NULL,1,1,1,0,0&#125;,</span><br><span class="line">    &#123;&quot;setnx&quot;,setnxCommand,3,&quot;wmF&quot;,0,NULL,1,1,1,0,0&#125;,</span><br><span class="line">    ......</span><br></pre></td></tr></table></figure>
+
+<p>例如先查看lpush、zadd等命令的实现，我们只需要看相应的函数怎么实现即可</p>
+
+          
+        
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://binpang.github.io/2019/08/29/Best-Time-to-Buy-and-Sell-Stock-IV/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -754,7 +962,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">2</span>
+                    <span class="site-state-item-count">3</span>
                     <span class="site-state-item-name">posts</span>
                   </a>
                 </div>

@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.0.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.0.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="准备 熟练基本redis操作 了解编程语言(c+java最优)  初窥clone代码 12pangbin@pangbin-VirtualBox:~$ cdpangbin@pangbin-VirtualBox:~$ git clone https://github.com/antirez/redis.git  当拿到源代码时，我们首先需要看的是源码目录，优秀的开源软件命名一定非常规范，非常清晰明了">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何阅读redis数据结构">
+<meta property="og:url" content="https://binpang.github.io/2019/09/02/how-to-read-redis-source-code/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="准备 熟练基本redis操作 了解编程语言(c+java最优)  初窥clone代码 12pangbin@pangbin-VirtualBox:~$ cdpangbin@pangbin-VirtualBox:~$ git clone https://github.com/antirez/redis.git  当拿到源代码时，我们首先需要看的是源码目录，优秀的开源软件命名一定非常规范，非常清晰明了">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-09-06T11:11:11.354Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="如何阅读redis数据结构">
+<meta name="twitter:description" content="准备 熟练基本redis操作 了解编程语言(c+java最优)  初窥clone代码 12pangbin@pangbin-VirtualBox:~$ cdpangbin@pangbin-VirtualBox:~$ git clone https://github.com/antirez/redis.git  当拿到源代码时，我们首先需要看的是源码目录，优秀的开源软件命名一定非常规范，非常清晰明了">
+
+
+
+
+
+
+  <link rel="canonical" href="https://binpang.github.io/2019/09/02/how-to-read-redis-source-code/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>如何阅读redis数据结构 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://binpang.github.io/2019/09/02/how-to-read-redis-source-code/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">如何阅读redis数据结构
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-09-02 12:30:25" itemprop="dateCreated datePublished" datetime="2019-09-02T12:30:25+08:00">2019-09-02</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-09-06 19:11:11" itemprop="dateModified" datetime="2019-09-06T19:11:11+08:00">2019-09-06</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><ul>
+<li>熟练基本redis操作</li>
+<li>了解编程语言(c+java最优)</li>
+</ul>
+<h2 id="初窥"><a href="#初窥" class="headerlink" title="初窥"></a>初窥</h2><p>clone代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~$ cd</span><br><span class="line">pangbin@pangbin-VirtualBox:~$ git clone https://github.com/antirez/redis.git</span><br></pre></td></tr></table></figure>
+
+<p>当拿到源代码时，我们首先需要看的是<strong>源码目录</strong>，优秀的开源软件命名一定非常规范，非常清晰明了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~/redis$ ls -F</span><br><span class="line">00-RELEASENOTES  CONTRIBUTING  INSTALL    Makefile   deps/       runtest*          runtest-moduleapi*  sentinel.conf  tests/</span><br><span class="line">BUGS             COPYING       MANIFESTO  README.md  redis.conf  runtest-cluster*  runtest-sentinel*   src/           utils/</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="green">runtest*</font> 我们能猜到是跑测试用例的(带执行权限)</li>
+<li><font color="blue">deps/</font> 依赖库</li>
+<li><font color="blue">tests/</font> 测试用例</li>
+<li><font color="blue">src/</font> <strong>源码目录</strong>，这也是一般项目都会放在这下面的</li>
+<li><font color="blue">utils/</font> 小工具</li>
+<li>*.conf 配置文件</li>
+<li>Makefile 自动编译工具</li>
+<li>…其他文件，我们通过文件名可以判断出来</li>
+</ul>
+<h2 id="源码文件与编译"><a href="#源码文件与编译" class="headerlink" title="源码文件与编译"></a>源码文件与编译</h2><h3 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~/redis$ ls -F src/</span><br><span class="line">Makefile     bio.c              debugmacro.h      gopher.c           lzfP.h            quicklist.h        release.c       slowlog.c       tracking.c</span><br><span class="line">acl.c        bio.h              defrag.c          help.h             lzf_c.c           rand.c             replication.c   slowlog.h       util.c</span><br><span class="line">adlist.c     bitops.c           dict.c            hyperloglog.c      lzf_d.c           rand.h             rio.c           solarisfixes.h  util.h</span><br><span class="line">adlist.h     blocked.c          dict.h            intset.c           memtest.c         rax.c              rio.h           sort.c          valgrind.sup</span><br><span class="line">ae.c         childinfo.c        endianconv.c      intset.h           mkreleasehdr.sh*  rax.h              scripting.c     sparkline.c     version.h</span><br><span class="line">ae.h         cluster.c          endianconv.h      latency.c          module.c          rax_malloc.h       sds.c           sparkline.h     ziplist.c</span><br><span class="line">ae_epoll.c   cluster.h          evict.c           latency.h          modules/          rdb.c              sds.h           stream.h        ziplist.h</span><br><span class="line">ae_evport.c  config.c           expire.c          lazyfree.c         multi.c           rdb.h              sdsalloc.h      syncio.c        zipmap.c</span><br><span class="line">ae_kqueue.c  config.h           fmacros.h         listpack.c         networking.c      redis-benchmark.c  sentinel.c      t_hash.c        zipmap.h</span><br><span class="line">ae_select.c  crc16.c            geo.c             listpack.h         notify.c          redis-check-aof.c  server.c        t_list.c        zmalloc.c</span><br><span class="line">anet.c       crc16_slottable.h  geo.h             listpack_malloc.h  object.c          redis-check-rdb.c  server.h        t_set.c         zmalloc.h</span><br><span class="line">anet.h       crc64.c            geohash.c         localtime.c        pqsort.c          redis-cli.c        setproctitle.c  t_stream.c</span><br><span class="line">aof.c        crc64.h            geohash.h         lolwut.c           pqsort.h          redis-trib.rb*     sha1.c          t_string.c</span><br><span class="line">asciilogo.h  db.c               geohash_helper.c  lolwut5.c          pubsub.c          redisassert.h      sha1.h          t_zset.c</span><br><span class="line">atomicvar.h  debug.c            geohash_helper.h  lzf.h              quicklist.c       redismodule.h      siphash.c       testhelp.h</span><br></pre></td></tr></table></figure>
+
+<p>我们通过grep命令来查看这些命令的源代码在何处，当然我们不能去grep get等操作，因为这些命令与单词太像了,我们搜索像getset、sismember等特殊非单词命令</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~/redis$ grep -ri getset ./src/</span><br><span class="line">./src/server.c:    &#123;&quot;getset&quot;,getsetCommand,3,</span><br><span class="line">./src/config.c:            if ((unsigned int) aeGetSetSize(server.el) &lt;</span><br><span class="line">./src/ae.h:int aeGetSetSize(aeEventLoop *eventLoop);</span><br><span class="line">./src/ae.c:int aeGetSetSize(aeEventLoop *eventLoop) &#123;</span><br><span class="line">./src/t_string.c:void getsetCommand(client *c) &#123;</span><br><span class="line">./src/help.h:    &#123; &quot;GETSET&quot;,</span><br><span class="line">./src/server.h:void getsetCommand(client *c);</span><br></pre></td></tr></table></figure>
+
+<p>通过grep，我们能大致猜测当执行getset命令时执行的是<strong>getsetCommand</strong>函数</p>
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">pangbin@pangbin-VirtualBox:~/redis$ make</span><br><span class="line">pangbin@pangbin-VirtualBox:~/redis$ gdb src/redis-server</span><br><span class="line"></span><br><span class="line">GDB中：</span><br><span class="line">(gdb) b getsetCommand</span><br><span class="line">Breakpoint 1 at 0x64a00: file t_string.c, line 176.</span><br><span class="line">(gdb) run</span><br></pre></td></tr></table></figure>
+
+<p>然后在另外一个窗口执行以下命令后再跳转回原窗口</p>
+<hr>
+<p>pangbin@pangbin-VirtualBox:~$ redis-cli</p>
+<p>127.0.0.1:6379&gt; getset test 123</p>
+<hr>
+<h3 id="调用栈"><a href="#调用栈" class="headerlink" title="调用栈"></a>调用栈</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(gdb) bt</span><br><span class="line">#0  getsetCommand (c=0x7ffff6d17100) at t_string.c:176</span><br><span class="line">#1  0x00005555555911c8 in call (c=0x7ffff6d17100, flags=15) at server.c:3181</span><br><span class="line">#2  0x0000555555591b3c in processCommand (c=c@entry=0x7ffff6d17100) at server.c:3513</span><br><span class="line">#3  0x000055555559eb30 in processCommandAndResetClient (c=c@entry=0x7ffff6d17100) at networking.c:1577</span><br><span class="line">#4  0x00005555555a2d9f in processInputBuffer (c=0x7ffff6d17100) at networking.c:1672</span><br><span class="line">#5  0x000055555558a830 in aeProcessEvents (eventLoop=eventLoop@entry=0x7ffff6c23190, flags=flags@entry=11) at ae.c:443</span><br><span class="line">#6  0x000055555558ac1b in aeMain (eventLoop=0x7ffff6c23190) at ae.c:501</span><br><span class="line">#7  0x00005555555877c9 in main (argc=&lt;optimized out&gt;, argv=0x7fffffffe3b8) at server.c:4933</span><br></pre></td></tr></table></figure>
+
+<p>当然从上面bt中我们可以看到一条命令执行的全过程</p>
+<hr>
+<p><strong>main</strong> -&gt;</p>
+<p><strong>aeMain</strong> -&gt;</p>
+<p><strong>aeProcessEvents</strong> -&gt;</p>
+<p><strong>processInputBuffer</strong> -&gt;</p>
+<p><strong>processCommandAndResetClient</strong> -&gt;</p>
+<p><strong>processCommand</strong> -&gt;</p>
+<p><strong>call</strong> -&gt;</p>
+<p><strong>getsetCommand</strong></p>
+<hr>
+<p>当然<strong>getset</strong>命令就是在<strong>getsetCommand</strong>函数中实现的，我们可以去查看这个函数是怎么执行的，由于这个命令比较简单，那么我们</p>
+<ul>
+<li>注意到#7中有<em>argc=&lt;optimized out&gt;<em>，我们在执行编译时指定</em>make noopt</em></li>
+</ul>
+<h2 id="redis"><a href="#redis" class="headerlink" title="redis"></a>redis</h2><p>我们在查找getset时，在getset命令上下，可以发现在server.c中，保存在所有命令对应的函数</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">struct redisCommand redisCommandTable[] = &#123;</span><br><span class="line">    &#123;&quot;module&quot;,moduleCommand,-2,&quot;as&quot;,0,NULL,0,0,0,0,0&#125;,</span><br><span class="line">    &#123;&quot;get&quot;,getCommand,2,&quot;rF&quot;,0,NULL,1,1,1,0,0&#125;,</span><br><span class="line">    &#123;&quot;set&quot;,setCommand,-3,&quot;wm&quot;,0,NULL,1,1,1,0,0&#125;,</span><br><span class="line">    &#123;&quot;setnx&quot;,setnxCommand,3,&quot;wmF&quot;,0,NULL,1,1,1,0,0&#125;,</span><br><span class="line">    ......</span><br></pre></td></tr></table></figure>
+
+<p>例如先查看lpush、zadd等命令的实现，我们只需要看相应的函数怎么实现即可</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/08/29/Best-Time-to-Buy-and-Sell-Stock-IV/" rel="next" title="Best Time to Buy and Sell Stock IV">
+                <i class="fa fa-chevron-left"></i> Best Time to Buy and Sell Stock IV
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">John Doe</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">tags</span>
+                  
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#准备"><span class="nav-number">1.</span> <span class="nav-text">准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#初窥"><span class="nav-number">2.</span> <span class="nav-text">初窥</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#源码文件与编译"><span class="nav-number">3.</span> <span class="nav-text">源码文件与编译</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#源码"><span class="nav-number">3.1.</span> <span class="nav-text">源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#编译"><span class="nav-number">3.2.</span> <span class="nav-text">编译</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#调用栈"><span class="nav-number">3.3.</span> <span class="nav-text">调用栈</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis"><span class="nav-number">4.</span> <span class="nav-text">redis</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.0.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.0"></script>
+
+  <script src="/js/src/motion.js?v=7.0.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/schemes/muse.js?v=7.0.0"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.0"></script>
+<script src="/js/src/post-details.js?v=7.0.0"></script>
+
+
+
+  
+
+
+  <script src="/js/src/bootstrap.js?v=7.0.0"></script>
+
+
+
+  
+
+
+  
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
