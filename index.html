@@ -347,7 +347,7 @@
                 
                   <span class="post-meta-item-text">Edited on</span>
                 
-                <time title="Modified: 2019-09-10 00:26:53" itemprop="dateModified" datetime="2019-09-10T00:26:53+08:00">2019-09-10</time>
+                <time title="Modified: 2019-09-10 00:32:05" itemprop="dateModified" datetime="2019-09-10T00:32:05+08:00">2019-09-10</time>
               
             
           </span>
@@ -386,7 +386,7 @@
             <h1 id="fastcgi协议"><a href="#fastcgi协议" class="headerlink" title="fastcgi协议"></a>fastcgi协议</h1><p>我们知道nginx与php-fpm交互是通过fastcgi协议进行的，那么nginx与php-fpm的交互流程具体是怎么的呢？我们一起来分析下细节</p>
 <h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p>先看wireshark抓包的数据：</p>
 <p><code>nginx(10.106.10.202)</code> –&gt; <code>fpm(10.106.10.136)</code></p>
-<p><img src="/.io//wireshark_fastcgi.png" alt="wireshark抓包"></p>
+<p><img src="/2019/09/08/a-fastcgi-request-detail/09/08/a-fastcgi-request-detail/wireshark_fastcgi.png" alt="wireshark抓包"></p>
 <ul>
 <li><code>23 24 25</code> tcp三次握手协议</li>
 <li><code>26</code> nginx发送请求</li>
@@ -851,7 +851,7 @@
 </li>
 <li><p><strong>大化小</strong></p>
 <ul>
-<li><p>k==1，很简单的计算出最大值 <a href="https://leetcode.com/problems/best-time-to-buy-and-sell-stock/" target="_blank" rel="noopener">121. Best Time to Buy and Sell Stock</a></p>
+<li><p>k==1，很简单的计算出最大值 <a href="/2019/08/29/Best-Time-to-Buy-and-Sell-Stock-IV//leetcode.com/problems/best-time-to-buy-and-sell-stock/" target="_blank" rel="noopener">121. Best Time to Buy and Sell Stock</a></p>
 </li>
 <li><p>k==2，我们可能很容易想到计算出一个正负数组(其实这也是买卖股票的前2个问题的解法)，例如</p>
 <p>prices=<strong>1, 2, 4, 2, 5, 7, 2, 4, 9, 0, 9</strong></p>
@@ -1115,19 +1115,19 @@
       
         
           
-            <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+            <p>Welcome to <a href="/2019/08/21/hello-world//hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="/2019/08/21/hello-world//hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="/2019/08/21/hello-world//hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="/2019/08/21/hello-world//github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
 <h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
+<p>More info: <a href="/2019/08/21/hello-world//hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
 <h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
+<p>More info: <a href="/2019/08/21/hello-world//hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
 <h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
+<p>More info: <a href="/2019/08/21/hello-world//hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
 <h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+<p>More info: <a href="/2019/08/21/hello-world//hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
 
           
         
