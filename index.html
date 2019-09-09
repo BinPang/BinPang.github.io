@@ -347,7 +347,7 @@
                 
                   <span class="post-meta-item-text">Edited on</span>
                 
-                <time title="Modified: 2019-09-10 00:32:05" itemprop="dateModified" datetime="2019-09-10T00:32:05+08:00">2019-09-10</time>
+                <time title="Modified: 2019-09-10 00:38:33" itemprop="dateModified" datetime="2019-09-10T00:38:33+08:00">2019-09-10</time>
               
             
           </span>
@@ -386,7 +386,7 @@
             <h1 id="fastcgi协议"><a href="#fastcgi协议" class="headerlink" title="fastcgi协议"></a>fastcgi协议</h1><p>我们知道nginx与php-fpm交互是通过fastcgi协议进行的，那么nginx与php-fpm的交互流程具体是怎么的呢？我们一起来分析下细节</p>
 <h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p>先看wireshark抓包的数据：</p>
 <p><code>nginx(10.106.10.202)</code> –&gt; <code>fpm(10.106.10.136)</code></p>
-<p><img src="/2019/09/08/a-fastcgi-request-detail/09/08/a-fastcgi-request-detail/wireshark_fastcgi.png" alt="wireshark抓包"></p>
+<p><img src="/2019/09/08/a-fastcgi-request-detail/wireshark_fastcgi.png" alt="wireshark抓包"></p>
 <ul>
 <li><code>23 24 25</code> tcp三次握手协议</li>
 <li><code>26</code> nginx发送请求</li>
