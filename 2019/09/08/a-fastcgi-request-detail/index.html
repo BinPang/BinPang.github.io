@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.0.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.0.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="fastcgi协议我们知道nginx与php-fpm交互是通过fastcgi协议进行的，那么nginx与php-fpm的交互流程具体是怎么的呢？我们一起来分析下细节 概览先看wireshark抓包的数据： nginx(10.106.10.202) –&amp;gt; fpm(10.106.10.136)   23 24 25 tcp三次握手协议 26 nginx发送请求 27 ack 28 php-fpm">
+<meta property="og:type" content="article">
+<meta property="og:title" content="a fastcgi request detail">
+<meta property="og:url" content="https://binpang.github.io/2019/09/08/a-fastcgi-request-detail/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="fastcgi协议我们知道nginx与php-fpm交互是通过fastcgi协议进行的，那么nginx与php-fpm的交互流程具体是怎么的呢？我们一起来分析下细节 概览先看wireshark抓包的数据： nginx(10.106.10.202) –&amp;gt; fpm(10.106.10.136)   23 24 25 tcp三次握手协议 26 nginx发送请求 27 ack 28 php-fpm">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://binpang.github.io/.io//wireshark_fastcgi.png">
+<meta property="og:updated_time" content="2019-09-09T16:26:53.553Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="a fastcgi request detail">
+<meta name="twitter:description" content="fastcgi协议我们知道nginx与php-fpm交互是通过fastcgi协议进行的，那么nginx与php-fpm的交互流程具体是怎么的呢？我们一起来分析下细节 概览先看wireshark抓包的数据： nginx(10.106.10.202) –&amp;gt; fpm(10.106.10.136)   23 24 25 tcp三次握手协议 26 nginx发送请求 27 ack 28 php-fpm">
+<meta name="twitter:image" content="https://binpang.github.io/.io//wireshark_fastcgi.png">
+
+
+
+
+
+
+  <link rel="canonical" href="https://binpang.github.io/2019/09/08/a-fastcgi-request-detail/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>a fastcgi request detail | Hexo</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://binpang.github.io/2019/09/08/a-fastcgi-request-detail/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">a fastcgi request detail
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-09-08 12:55:42" itemprop="dateCreated datePublished" datetime="2019-09-08T12:55:42+08:00">2019-09-08</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-09-10 00:26:53" itemprop="dateModified" datetime="2019-09-10T00:26:53+08:00">2019-09-10</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="fastcgi协议"><a href="#fastcgi协议" class="headerlink" title="fastcgi协议"></a>fastcgi协议</h1><p>我们知道nginx与php-fpm交互是通过fastcgi协议进行的，那么nginx与php-fpm的交互流程具体是怎么的呢？我们一起来分析下细节</p>
+<h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p>先看wireshark抓包的数据：</p>
+<p><code>nginx(10.106.10.202)</code> –&gt; <code>fpm(10.106.10.136)</code></p>
+<p><img src="/.io//wireshark_fastcgi.png" alt="wireshark抓包"></p>
+<ul>
+<li><code>23 24 25</code> tcp三次握手协议</li>
+<li><code>26</code> nginx发送请求</li>
+<li><code>27</code> ack</li>
+<li><code>28</code> php-fpm返回结果</li>
+<li><code>29</code> ack</li>
+<li><code>30 31 32 33</code> tcp四次挥手</li>
+</ul>
+<p>所有分析都是基于FastCGI规范 <a href="/2019/09/08/a-fastcgi-request-detail//www.mit.edu/~yandros/doc/specs/fcgi-spec.html" target="_blank" rel="noopener">FastCGI Specification</a></p>
+<p>发送与接收数据基于<code>Record</code>，<code>Record=头信息+消息体(消息体结构不同，长度可能为0会省略)</code>，所有的数据不外乎为<code>Record</code>数组</p>
+<h2 id="发送fastcgi请求"><a href="#发送fastcgi请求" class="headerlink" title="发送fastcgi请求"></a>发送fastcgi请求</h2><p>我们先看下wireshark的<code>No.26</code>号包的Hex值，接着将在下面详细分析所有的相应的Hex值，在这里不用关注内容，只用知道这些Hex为<code>Record</code>数组即可，大致可以看到我们经常使用到的一些参数，例如<code>HTTP_ACCEPT_ENCODING</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">0000   01 01 00 01 00 08 00 00 00 01 00 00 00 00 00 00   ................</span><br><span class="line">0010   01 04 00 01 03 5a 06 00 0f 17 53 43 52 49 50 54   .....Z....SCRIPT</span><br><span class="line">0020   5f 46 49 4c 45 4e 41 4d 45 2f 76 61 72 2f 77 77   _FILENAME/var/ww</span><br><span class="line">0030   77 2f 68 74 6d 6c 2f 68 65 6c 6c 6f 2e 70 68 70   w/html/hello.php</span><br><span class="line">0040   0c 00 51 55 45 52 59 5f 53 54 52 49 4e 47 0e 03   ..QUERY_STRING..</span><br><span class="line">0050   52 45 51 55 45 53 54 5f 4d 45 54 48 4f 44 47 45   REQUEST_METHODGE</span><br><span class="line">0060   54 0c 00 43 4f 4e 54 45 4e 54 5f 54 59 50 45 0e   T..CONTENT_TYPE.</span><br><span class="line">0070   00 43 4f 4e 54 45 4e 54 5f 4c 45 4e 47 54 48 0b   .CONTENT_LENGTH.</span><br><span class="line">0080   0a 53 43 52 49 50 54 5f 4e 41 4d 45 2f 68 65 6c   .SCRIPT_NAME/hel</span><br><span class="line">***省略***</span><br><span class="line">0310   65 3b 76 3d 62 33 14 0d 48 54 54 50 5f 41 43 43   e;v=b3..HTTP_ACC</span><br><span class="line">0320   45 50 54 5f 45 4e 43 4f 44 49 4e 47 67 7a 69 70   EPT_ENCODINGgzip</span><br><span class="line">0330   2c 20 64 65 66 6c 61 74 65 14 23 48 54 54 50 5f   , deflate.#HTTP_</span><br><span class="line">0340   41 43 43 45 50 54 5f 4c 41 4e 47 55 41 47 45 65   ACCEPT_LANGUAGEe</span><br><span class="line">0350   6e 2d 55 53 2c 65 6e 3b 71 3d 30 2e 39 2c 7a 68   n-US,en;q=0.9,zh</span><br><span class="line">0360   2d 43 4e 3b 71 3d 30 2e 38 2c 7a 68 3b 71 3d 30   -CN;q=0.8,zh;q=0</span><br><span class="line">0370   2e 37 00 00 00 00 00 00 01 04 00 01 00 00 00 00   .7..............</span><br><span class="line">0380   01 05 00 01 00 00 00 00                           ........</span><br></pre></td></tr></table></figure>
+
+<h3 id="fastcgi头信息"><a href="#fastcgi头信息" class="headerlink" title="fastcgi头信息"></a>fastcgi头信息</h3><p>一个结构体，简单来说就是8个char(8字节)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">typedef struct &#123;</span><br><span class="line">    unsigned char version;              //版本，目前默认是1</span><br><span class="line">    unsigned char type;                 //类型，非常重要的一个字段，决定了消息体，见接下来的define定义</span><br><span class="line">    unsigned char requestIdB1;          //requestID</span><br><span class="line">    unsigned char requestIdB0;</span><br><span class="line">    unsigned char contentLengthB1;      //内容长度</span><br><span class="line">    unsigned char contentLengthB0;</span><br><span class="line">    unsigned char paddingLength;        //补齐位长度</span><br><span class="line">    unsigned char reserved;             //保留字段，对齐</span><br><span class="line">&#125; FCGI_Header;</span><br></pre></td></tr></table></figure>
+
+<p>对照这个struct，我们把wireshark抓包的结果来应用到这个结构体中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">0000   01 01 00 01 00 08 00 00 * * * * * * * *</span><br><span class="line">           ^		  \----/</span><br><span class="line">           |			 |</span><br><span class="line">           |		 长度8字节</span><br><span class="line">    FCGI_BEGIN_REQUEST(下面对这个type详细介绍)</span><br></pre></td></tr></table></figure>
+
+<p>其中<code>type</code>字段非常重要，如下所示</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">#define FCGI_BEGIN_REQUEST       1</span><br><span class="line">#define FCGI_ABORT_REQUEST       2</span><br><span class="line">#define FCGI_END_REQUEST         3</span><br><span class="line">#define FCGI_PARAMS              4</span><br><span class="line">#define FCGI_STDIN               5</span><br><span class="line">#define FCGI_STDOUT              6</span><br><span class="line">#define FCGI_STDERR              7</span><br><span class="line">#define FCGI_DATA                8</span><br><span class="line">#define FCGI_GET_VALUES          9</span><br><span class="line">#define FCGI_GET_VALUES_RESULT  10</span><br><span class="line">#define FCGI_UNKNOWN_TYPE       11</span><br><span class="line">#define FCGI_MAXTYPE (FCGI_UNKNOWN_TYPE)</span><br></pre></td></tr></table></figure>
+
+<h3 id="fastcgi第一条记录"><a href="#fastcgi第一条记录" class="headerlink" title="fastcgi第一条记录"></a>fastcgi第一条记录</h3><p><code>FCGI_Header</code> + <code>FCGI_BeginRequestBody</code>（这2部分又叫<code>FCGI_BeginRequestRecord</code>），第一条内容结构体如下所示</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">typedef struct &#123;</span><br><span class="line">    unsigned char roleB1;      //请求的角色，角色如下定义</span><br><span class="line">    unsigned char roleB0;</span><br><span class="line">    unsigned char flags;       //0不保持连接，1保持连接</span><br><span class="line">    unsigned char reserved[5];</span><br><span class="line">&#125; FCGI_BeginRequestBody;</span><br><span class="line"></span><br><span class="line">#define FCGI_RESPONDER  1 //响应器，收取消息</span><br><span class="line">#define FCGI_AUTHORIZER 2</span><br><span class="line">#define FCGI_FILTER     3</span><br></pre></td></tr></table></figure>
+
+<p>前8字节为头信息，后8字节为请求内容</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0000   01 01 00 01 00 08 00 00 00 01 00 00 00 00 00 00</span><br><span class="line">						   	  \----/</span><br><span class="line">						     	 |</span><br><span class="line">				      		FCGI_RESPONDER</span><br></pre></td></tr></table></figure>
+
+<h3 id="fastcgi第二条记录"><a href="#fastcgi第二条记录" class="headerlink" title="fastcgi第二条记录"></a>fastcgi第二条记录</h3><p><code>FCGI_Header</code> + <code>FCGI_NameValuePair11</code>，结构体如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">typedef struct &#123;</span><br><span class="line">    unsigned char nameLengthB0;</span><br><span class="line">    unsigned char valueLengthB0;</span><br><span class="line">    unsigned char nameData[nameLength];</span><br><span class="line">    unsigned char valueData[valueLength];</span><br><span class="line">&#125; FCGI_NameValuePair11;</span><br></pre></td></tr></table></figure>
+
+<p>前8字节为头信息，后38字节为请求内容</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">0010   01 04 00 01 03 5a 06 00 0f 17 53 43 52 49 50 54   .....Z....SCRIPT</span><br><span class="line">0020   5f 46 49 4c 45 4e 41 4d 45 2f 76 61 72 2f 77 77   _FILENAME/var/ww</span><br><span class="line">0030   77 2f 68 74 6d 6c 2f 68 65 6c 6c 6f 2e 70 68 70   w/html/hello.php</span><br><span class="line"></span><br><span class="line">0010 ~ 0017：header信息</span><br><span class="line">0018：0f = 00001111 所以说长度为15 = SCRIPT_FILENAME</span><br><span class="line">0019：17 = 00010111 所以说长度为23 = /var/www/html/hello.php</span><br><span class="line">001a ~ 0029：SCRIPT_FILENAME</span><br><span class="line">002a ~ 003f：/var/www/html/hello.php</span><br></pre></td></tr></table></figure>
+
+<p>除了FCGI_NameValuePair11结构体之外，还有另外3种数据来处理长度不一致的数据，由key与value长度决定，有下面4条规则</p>
+<ul>
+<li>0<strong>***</strong> 0<strong>***</strong> =&gt; <code>FCGI_NameValuePair11</code></li>
+<li>0<strong>***</strong> 1<strong>***</strong> <strong>****</strong> <strong>****</strong> <strong>****</strong> =&gt; <code>FCGI_NameValuePair14</code></li>
+<li>1<strong>***</strong> <strong>****</strong> <strong>****</strong> <strong>****</strong> 0<strong>***</strong> =&gt; <code>FCGI_NameValuePair41</code></li>
+<li>1<strong>***</strong> <strong>****</strong> <strong>****</strong> <strong>****</strong> 1<strong>***</strong> <strong>****</strong> <strong>****</strong> <strong>****</strong> =&gt; <code>FCGI_NameValuePair44</code></li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">typedef struct &#123;</span><br><span class="line">    unsigned char nameLengthB0;  /* nameLengthB0  &gt;&gt; 7 == 0 */</span><br><span class="line">    unsigned char valueLengthB0; /* valueLengthB0 &gt;&gt; 7 == 0 */</span><br><span class="line">    unsigned char nameData[nameLength];</span><br><span class="line">    unsigned char valueData[valueLength];</span><br><span class="line">&#125; FCGI_NameValuePair11;</span><br><span class="line"></span><br><span class="line">typedef struct &#123;</span><br><span class="line">    unsigned char nameLengthB0;  /* nameLengthB0  &gt;&gt; 7 == 0 */</span><br><span class="line">    unsigned char valueLengthB3; /* valueLengthB3 &gt;&gt; 7 == 1 */</span><br><span class="line">    unsigned char valueLengthB2;</span><br><span class="line">    unsigned char valueLengthB1;</span><br><span class="line">    unsigned char valueLengthB0;</span><br><span class="line">    unsigned char nameData[nameLength];</span><br><span class="line">    unsigned char valueData[valueLength</span><br><span class="line">            ((B3 &amp; 0x7f) &lt;&lt; 24) + (B2 &lt;&lt; 16) + (B1 &lt;&lt; 8) + B0];</span><br><span class="line">&#125; FCGI_NameValuePair14;</span><br><span class="line"></span><br><span class="line">typedef struct &#123;</span><br><span class="line">    unsigned char nameLengthB3;  /* nameLengthB3  &gt;&gt; 7 == 1 */</span><br><span class="line">    unsigned char nameLengthB2;</span><br><span class="line">    unsigned char nameLengthB1;</span><br><span class="line">    unsigned char nameLengthB0;</span><br><span class="line">    unsigned char valueLengthB0; /* valueLengthB0 &gt;&gt; 7 == 0 */</span><br><span class="line">    unsigned char nameData[nameLength</span><br><span class="line">            ((B3 &amp; 0x7f) &lt;&lt; 24) + (B2 &lt;&lt; 16) + (B1 &lt;&lt; 8) + B0];</span><br><span class="line">    unsigned char valueData[valueLength];</span><br><span class="line">&#125; FCGI_NameValuePair41;</span><br><span class="line"></span><br><span class="line">typedef struct &#123;</span><br><span class="line">    unsigned char nameLengthB3;  /* nameLengthB3  &gt;&gt; 7 == 1 */</span><br><span class="line">    unsigned char nameLengthB2;</span><br><span class="line">    unsigned char nameLengthB1;</span><br><span class="line">    unsigned char nameLengthB0;</span><br><span class="line">    unsigned char valueLengthB3; /* valueLengthB3 &gt;&gt; 7 == 1 */</span><br><span class="line">    unsigned char valueLengthB2;</span><br><span class="line">    unsigned char valueLengthB1;</span><br><span class="line">    unsigned char valueLengthB0;</span><br><span class="line">    unsigned char nameData[nameLength</span><br><span class="line">            ((B3 &amp; 0x7f) &lt;&lt; 24) + (B2 &lt;&lt; 16) + (B1 &lt;&lt; 8) + B0];</span><br><span class="line">    unsigned char valueData[valueLength</span><br><span class="line">            ((B3 &amp; 0x7f) &lt;&lt; 24) + (B2 &lt;&lt; 16) + (B1 &lt;&lt; 8) + B0];</span><br><span class="line">&#125; FCGI_NameValuePair44;</span><br></pre></td></tr></table></figure>
+
+<h3 id="fastcgi第三条与第四条记录"><a href="#fastcgi第三条与第四条记录" class="headerlink" title="fastcgi第三条与第四条记录"></a>fastcgi第三条与第四条记录</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0370   ** ** ** ** ** ** ** ** 01 04 00 01 00 00 00 00   .7..............</span><br><span class="line">0380   01 05 00 01 00 00 00 00                           ........</span><br></pre></td></tr></table></figure>
+
+<p>注意这里只有头信息，数据为空，分析类似第一条与第二条</p>
+<h3 id="发送fastcgi总结"><a href="#发送fastcgi总结" class="headerlink" title="发送fastcgi总结"></a>发送fastcgi总结</h3><p>相当于发送了如下数据：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;FCGI_BEGIN_REQUEST,   1, &quot;xxx&quot;&#125;</span><br><span class="line">&#123;FCGI_PARAMS,          1, &quot;xxx&quot;&#125;</span><br><span class="line">&#123;FCGI_PARAMS,          1, &quot;&quot;&#125;</span><br><span class="line">&#123;FCGI_STDIN,           1, &quot;&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="接收fastcgi响应"><a href="#接收fastcgi响应" class="headerlink" title="接收fastcgi响应"></a>接收fastcgi响应</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">0000   01 06 00 01 00 35 03 00 43 6f 6e 74 65 6e 74 2d   .....5..Content-</span><br><span class="line">0010   74 79 70 65 3a 20 74 65 78 74 2f 68 74 6d 6c 3b   type: text/html;</span><br><span class="line">0020   20 63 68 61 72 73 65 74 3d 55 54 46 2d 38 0d 0a    charset=UTF-8..</span><br><span class="line">0030   0d 0a 68 65 6c 6c 6f 20 77 6f 72 6c 64 00 00 00   ..hello world...</span><br><span class="line">0040   01 03 00 01 00 08 00 00 00 00 00 00 00 00 00 00   ................</span><br></pre></td></tr></table></figure>
+
+<h3 id="fastcgi第一条记录-1"><a href="#fastcgi第一条记录-1" class="headerlink" title="fastcgi第一条记录"></a>fastcgi第一条记录</h3><p><code>FCGI_Header</code> + <code>FCGI_NameValuePair11</code></p>
+<table>
+<thead>
+<tr>
+<th>address</th>
+<th>value</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0002</td>
+<td>06</td>
+<td>FCGI_STDOUT</td>
+</tr>
+<tr>
+<td>0004~0005</td>
+<td>35</td>
+<td>表示字符长度为53(0x35=53)</td>
+</tr>
+</tbody></table>
+<h3 id="fastcgi第二条记录-1"><a href="#fastcgi第二条记录-1" class="headerlink" title="fastcgi第二条记录"></a>fastcgi第二条记录</h3><p><code>FCGI_Header</code> + <code>FCGI_EndRequestBody</code>，结构体如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">typedef struct &#123;</span><br><span class="line">    unsigned char appStatusB3; //component is an application-level status code</span><br><span class="line">    unsigned char appStatusB2;</span><br><span class="line">    unsigned char appStatusB1;</span><br><span class="line">    unsigned char appStatusB0;</span><br><span class="line">    unsigned char protocolStatus;</span><br><span class="line">    unsigned char reserved[3];</span><br><span class="line">&#125; FCGI_EndRequestBody;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0040   01 03 00 01 00 08 00 00 00 00 00 00 00 00 00 00</span><br></pre></td></tr></table></figure>
+
+<p>protocolStatus的值如下所示</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">#define FCGI_REQUEST_COMPLETE 0</span><br><span class="line">#define FCGI_CANT_MPX_CONN    1</span><br><span class="line">#define FCGI_OVERLOADED       2</span><br><span class="line">#define FCGI_UNKNOWN_ROLE     3</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>FCGI_REQUEST_COMPLETE: normal end of request.</li>
+<li>FCGI_CANT_MPX_CONN: rejecting a new request. This happens when a Web server sends concurrent requests over one connection to an application that is designed to process one request at a time per connection.</li>
+<li>FCGI_OVERLOADED: rejecting a new request. This happens when the application runs out of some resource, e.g. database connections.</li>
+<li>FCGI_UNKNOWN_ROLE: rejecting a new request. This happens when the Web server has specified a role that is unknown to the application.</li>
+</ul>
+<h3 id="接收fastcgi总结"><a href="#接收fastcgi总结" class="headerlink" title="接收fastcgi总结"></a>接收fastcgi总结</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#123;FCGI_STDOUT,      1, &quot;xxx&quot;&#125;</span><br><span class="line">&#123;FCGI_END_REQUEST, 1, &quot;xxx&quot;&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="优化点与改进"><a href="#优化点与改进" class="headerlink" title="优化点与改进"></a>优化点与改进</h2><ol>
+<li>fastcgi支持长连接</li>
+<li>发送数据量减少，例如<code>SCRIPT_NAME</code>这些固定的下标都可以用数字下标来替换，类似protobuf这种组织方式</li>
+<li>减少params数量</li>
+</ol>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/09/02/how-to-read-redis-source-code/" rel="next" title="如何阅读redis数据结构">
+                <i class="fa fa-chevron-left"></i> 如何阅读redis数据结构
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">John Doe</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">4</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">tags</span>
+                  
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#fastcgi协议"><span class="nav-number">1.</span> <span class="nav-text">fastcgi协议</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#概览"><span class="nav-number">1.1.</span> <span class="nav-text">概览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#发送fastcgi请求"><span class="nav-number">1.2.</span> <span class="nav-text">发送fastcgi请求</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#fastcgi头信息"><span class="nav-number">1.2.1.</span> <span class="nav-text">fastcgi头信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fastcgi第一条记录"><span class="nav-number">1.2.2.</span> <span class="nav-text">fastcgi第一条记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fastcgi第二条记录"><span class="nav-number">1.2.3.</span> <span class="nav-text">fastcgi第二条记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fastcgi第三条与第四条记录"><span class="nav-number">1.2.4.</span> <span class="nav-text">fastcgi第三条与第四条记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#发送fastcgi总结"><span class="nav-number">1.2.5.</span> <span class="nav-text">发送fastcgi总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#接收fastcgi响应"><span class="nav-number">1.3.</span> <span class="nav-text">接收fastcgi响应</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#fastcgi第一条记录-1"><span class="nav-number">1.3.1.</span> <span class="nav-text">fastcgi第一条记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fastcgi第二条记录-1"><span class="nav-number">1.3.2.</span> <span class="nav-text">fastcgi第二条记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#接收fastcgi总结"><span class="nav-number">1.3.3.</span> <span class="nav-text">接收fastcgi总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#优化点与改进"><span class="nav-number">1.4.</span> <span class="nav-text">优化点与改进</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.0.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.0"></script>
+
+  <script src="/js/src/motion.js?v=7.0.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/schemes/muse.js?v=7.0.0"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.0"></script>
+<script src="/js/src/post-details.js?v=7.0.0"></script>
+
+
+
+  
+
+
+  <script src="/js/src/bootstrap.js?v=7.0.0"></script>
+
+
+
+  
+
+
+  
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
