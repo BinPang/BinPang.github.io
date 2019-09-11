@@ -285,6 +285,172 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://binpang.github.io/2019/09/11/golang-io-copy-in-http-server/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                
+                <a href="/2019/09/11/golang-io-copy-in-http-server/" class="post-title-link" itemprop="url">golang io.copy in http server</a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-09-11 12:24:28 / Modified: 16:20:53" itemprop="dateCreated datePublished" datetime="2019-09-11T12:24:28+08:00">2019-09-11</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>在业务中有这么一个需求<code>转发下载内容到用户</code>，代码如下所示</p>
+<h2 id="两种方案"><a href="#两种方案" class="headerlink" title="两种方案"></a>两种方案</h2><ul>
+<li>第一种方案</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">resp, err := http.Get(&quot;http://localhost/henry.jpg&quot;)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	println(err)</span><br><span class="line">	return</span><br><span class="line">&#125;</span><br><span class="line">defer resp.Body.Close()</span><br><span class="line">io.Copy(w, resp.Body)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二种方案</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">resp, err := http.Get(&quot;http://localhost/henry.jpg&quot;)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	println(err)</span><br><span class="line">	return</span><br><span class="line">&#125;</span><br><span class="line">defer resp.Body.Close()</span><br><span class="line">data, err := ioutil.ReadAll(resp.Body)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	println(err)</span><br><span class="line">	return</span><br><span class="line">&#125;</span><br><span class="line">w.Write(data)</span><br></pre></td></tr></table></figure>
+
+<p>通过测试，有如下的性能对比，和明显<code>io.Copy</code>在内存上占用很大的优势，我们来看看<code>io.Copy</code>怎么做的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">go test -bench=. -test.benchmem io.copy_test.go io.copy.go</span><br><span class="line">goos: darwin</span><br><span class="line">goarch: amd64</span><br><span class="line">BenchmarkIoCopy-4      	    5000	    255271 ns/op	   35898 B/op	      52 allocs/op</span><br><span class="line">BenchmarkIoReadAll-4   	    5000	    338339 ns/op	  263376 B/op	      61 allocs/op</span><br><span class="line">PASS</span><br><span class="line">ok  	command-line-arguments	3.059s</span><br></pre></td></tr></table></figure>
+
+<h2 id="io-Copy在http中的实现"><a href="#io-Copy在http中的实现" class="headerlink" title="io.Copy在http中的实现"></a>io.Copy在http中的实现</h2><p>当然首先需要debug，打印堆栈信息如下所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">net/http.(*response).ReadFrom at server.go:572</span><br><span class="line">io.copyBuffer at io.go:386</span><br><span class="line">io.Copy at io.go:362</span><br><span class="line">main.IoCopyHandler at io.copy.go:14</span><br><span class="line">net/http.HandlerFunc.ServeHTTP at server.go:1947</span><br><span class="line">net/http.(*ServeMux).ServeHTTP at server.go:2337</span><br><span class="line">net/http.serverHandler.ServeHTTP at server.go:2694</span><br><span class="line">net/http.(*conn).serve at server.go:1830</span><br><span class="line">runtime.goexit at asm_amd64.s:2361</span><br></pre></td></tr></table></figure>
+
+<p>ReadFrom代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">func (w *response) ReadFrom(src io.Reader) (n int64, err error) &#123;</span><br><span class="line">	rf, ok := w.conn.rwc.(io.ReaderFrom)</span><br><span class="line">	regFile, err := srcIsRegularFile(src)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return 0, err</span><br><span class="line">	&#125;</span><br><span class="line">	if !ok || !regFile &#123;</span><br><span class="line">		bufp := copyBufPool.Get().(*[]byte) //使用sync.Pool，并且buf的缓存大小为32768字节(32K)</span><br><span class="line">		defer copyBufPool.Put(bufp)</span><br><span class="line">		return io.CopyBuffer(writerOnly&#123;w&#125;, src, *bufp)</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中最重要的是<code>copyBufPool</code>，使用了sync.Pool并且大小为<code>32KB</code>，减少了垃圾回收带来的压力</p>
+<h2 id="问答"><a href="#问答" class="headerlink" title="问答"></a>问答</h2><p>问：这种场景能否用<code>sendfile</code>而实现零拷贝呢？</p>
+<p>答：不能，sendfile函数为：<br><code>ssize_t sendfile(int out_fd, int in_fd, off_t *offset, size_t count);</code></p>
+<p>其中man手册：<em>The in_fd argument must correspond to a file which supports mmap(2)-like operations (i.e., it cannot be a socket).</em></p>
+
+          
+        
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://binpang.github.io/2019/09/08/a-fastcgi-request-detail/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1212,7 +1378,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">4</span>
+                    <span class="site-state-item-count">5</span>
                     <span class="site-state-item-name">posts</span>
                   </a>
                 </div>
@@ -1229,7 +1395,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">1</span>
+                      
+                    
+                    <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">tags</span>
                   
                 </div>

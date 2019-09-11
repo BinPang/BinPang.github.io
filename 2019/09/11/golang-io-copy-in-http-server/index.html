@@ -96,24 +96,25 @@
 
 
 
-  <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+  <meta name="description" content="在业务中有这么一个需求转发下载内容到用户，代码如下所示 两种方案 第一种方案  1234567resp, err := http.Get(&amp;quot;http://localhost/henry.jpg&amp;quot;)if err != nil &amp;#123;	println(err)	return&amp;#125;defer resp.Body.Close()io.Copy(w, resp.Body)">
+<meta name="keywords" content="golang">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hello World">
-<meta property="og:url" content="https://binpang.github.io/2019/08/21/hello-world/index.html">
+<meta property="og:title" content="golang io.copy in http server">
+<meta property="og:url" content="https://binpang.github.io/2019/09/11/golang-io-copy-in-http-server/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+<meta property="og:description" content="在业务中有这么一个需求转发下载内容到用户，代码如下所示 两种方案 第一种方案  1234567resp, err := http.Get(&amp;quot;http://localhost/henry.jpg&amp;quot;)if err != nil &amp;#123;	println(err)	return&amp;#125;defer resp.Body.Close()io.Copy(w, resp.Body)">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-08-21T10:17:20.365Z">
+<meta property="og:updated_time" content="2019-09-11T08:20:53.760Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hello World">
-<meta name="twitter:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+<meta name="twitter:title" content="golang io.copy in http server">
+<meta name="twitter:description" content="在业务中有这么一个需求转发下载内容到用户，代码如下所示 两种方案 第一种方案  1234567resp, err := http.Get(&amp;quot;http://localhost/henry.jpg&amp;quot;)if err != nil &amp;#123;	println(err)	return&amp;#125;defer resp.Body.Close()io.Copy(w, resp.Body)">
 
 
 
 
 
 
-  <link rel="canonical" href="https://binpang.github.io/2019/08/21/hello-world/">
+  <link rel="canonical" href="https://binpang.github.io/2019/09/11/golang-io-copy-in-http-server/">
 
 
 
@@ -123,7 +124,7 @@
   };
 </script>
 
-  <title>Hello World | Hexo</title>
+  <title>golang io.copy in http server | Hexo</title>
   
 
 
@@ -288,7 +289,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://binpang.github.io/2019/08/21/hello-world/">
+    <link itemprop="mainEntityOfPage" href="https://binpang.github.io/2019/09/11/golang-io-copy-in-http-server/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="John Doe">
@@ -305,7 +306,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">Hello World
+          <h1 class="post-title" itemprop="name headline">golang io.copy in http server
 
               
             
@@ -331,9 +332,13 @@
                 
               
 
-              <time title="Created: 2019-08-21 18:17:20" itemprop="dateCreated datePublished" datetime="2019-08-21T18:17:20+08:00">2019-08-21</time>
+              <time title="Created: 2019-09-11 12:24:28 / Modified: 16:20:53" itemprop="dateCreated datePublished" datetime="2019-09-11T12:24:28+08:00">2019-09-11</time>
             
 
+            
+              
+
+              
             
           </span>
 
@@ -366,19 +371,30 @@
       
 
       
-        <p>Welcome to <a href="/2019/08/21/hello-world//hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="/2019/08/21/hello-world//hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="/2019/08/21/hello-world//hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="/2019/08/21/hello-world//github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+        <p>在业务中有这么一个需求<code>转发下载内容到用户</code>，代码如下所示</p>
+<h2 id="两种方案"><a href="#两种方案" class="headerlink" title="两种方案"></a>两种方案</h2><ul>
+<li>第一种方案</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">resp, err := http.Get(&quot;http://localhost/henry.jpg&quot;)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	println(err)</span><br><span class="line">	return</span><br><span class="line">&#125;</span><br><span class="line">defer resp.Body.Close()</span><br><span class="line">io.Copy(w, resp.Body)</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="/2019/08/21/hello-world//hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<ul>
+<li>第二种方案</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">resp, err := http.Get(&quot;http://localhost/henry.jpg&quot;)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	println(err)</span><br><span class="line">	return</span><br><span class="line">&#125;</span><br><span class="line">defer resp.Body.Close()</span><br><span class="line">data, err := ioutil.ReadAll(resp.Body)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	println(err)</span><br><span class="line">	return</span><br><span class="line">&#125;</span><br><span class="line">w.Write(data)</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="/2019/08/21/hello-world//hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>通过测试，有如下的性能对比，和明显<code>io.Copy</code>在内存上占用很大的优势，我们来看看<code>io.Copy</code>怎么做的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">go test -bench=. -test.benchmem io.copy_test.go io.copy.go</span><br><span class="line">goos: darwin</span><br><span class="line">goarch: amd64</span><br><span class="line">BenchmarkIoCopy-4      	    5000	    255271 ns/op	   35898 B/op	      52 allocs/op</span><br><span class="line">BenchmarkIoReadAll-4   	    5000	    338339 ns/op	  263376 B/op	      61 allocs/op</span><br><span class="line">PASS</span><br><span class="line">ok  	command-line-arguments	3.059s</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="/2019/08/21/hello-world//hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<h2 id="io-Copy在http中的实现"><a href="#io-Copy在http中的实现" class="headerlink" title="io.Copy在http中的实现"></a>io.Copy在http中的实现</h2><p>当然首先需要debug，打印堆栈信息如下所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">net/http.(*response).ReadFrom at server.go:572</span><br><span class="line">io.copyBuffer at io.go:386</span><br><span class="line">io.Copy at io.go:362</span><br><span class="line">main.IoCopyHandler at io.copy.go:14</span><br><span class="line">net/http.HandlerFunc.ServeHTTP at server.go:1947</span><br><span class="line">net/http.(*ServeMux).ServeHTTP at server.go:2337</span><br><span class="line">net/http.serverHandler.ServeHTTP at server.go:2694</span><br><span class="line">net/http.(*conn).serve at server.go:1830</span><br><span class="line">runtime.goexit at asm_amd64.s:2361</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="/2019/08/21/hello-world//hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+<p>ReadFrom代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">func (w *response) ReadFrom(src io.Reader) (n int64, err error) &#123;</span><br><span class="line">	rf, ok := w.conn.rwc.(io.ReaderFrom)</span><br><span class="line">	regFile, err := srcIsRegularFile(src)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return 0, err</span><br><span class="line">	&#125;</span><br><span class="line">	if !ok || !regFile &#123;</span><br><span class="line">		bufp := copyBufPool.Get().(*[]byte) //使用sync.Pool，并且buf的缓存大小为32768字节(32K)</span><br><span class="line">		defer copyBufPool.Put(bufp)</span><br><span class="line">		return io.CopyBuffer(writerOnly&#123;w&#125;, src, *bufp)</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中最重要的是<code>copyBufPool</code>，使用了sync.Pool并且大小为<code>32KB</code>，减少了垃圾回收带来的压力</p>
+<h2 id="问答"><a href="#问答" class="headerlink" title="问答"></a>问答</h2><p>问：这种场景能否用<code>sendfile</code>而实现零拷贝呢？</p>
+<p>答：不能，sendfile函数为：<br><code>ssize_t sendfile(int out_fd, int in_fd, off_t *offset, size_t count);</code></p>
+<p>其中man手册：<em>The in_fd argument must correspond to a file which supports mmap(2)-like operations (i.e., it cannot be a socket).</em></p>
 
       
     </div>
@@ -400,6 +416,12 @@
 
     <footer class="post-footer">
       
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+        </div>
+      
 
       
       
@@ -409,15 +431,15 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
+              <a href="/2019/09/08/a-fastcgi-request-detail/" rel="next" title="a fastcgi request detail">
+                <i class="fa fa-chevron-left"></i> a fastcgi request detail
+              </a>
+            
           </div>
 
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2019/08/29/Best-Time-to-Buy-and-Sell-Stock-IV/" rel="prev" title="Best Time to Buy and Sell Stock IV">
-                Best Time to Buy and Sell Stock IV <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -542,7 +564,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Quick-Start"><span class="nav-number">1.</span> <span class="nav-text">Quick Start</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Create-a-new-post"><span class="nav-number">1.1.</span> <span class="nav-text">Create a new post</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Run-server"><span class="nav-number">1.2.</span> <span class="nav-text">Run server</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Generate-static-files"><span class="nav-number">1.3.</span> <span class="nav-text">Generate static files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Deploy-to-remote-sites"><span class="nav-number">1.4.</span> <span class="nav-text">Deploy to remote sites</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#两种方案"><span class="nav-number">1.</span> <span class="nav-text">两种方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#io-Copy在http中的实现"><span class="nav-number">2.</span> <span class="nav-text">io.Copy在http中的实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问答"><span class="nav-number">3.</span> <span class="nav-text">问答</span></a></li></ol></div>
             
 
           </div>
